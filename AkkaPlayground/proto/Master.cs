@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Akka.Actor;
-using Akka.Configuration;
+﻿using Akka.Actor;
 using Akka.Routing;
 using AkkaPlayground.proto.actors;
 using AkkaPlayground.proto.data;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace AkkaPlayground.proto
 {
@@ -22,6 +20,8 @@ namespace AkkaPlayground.proto
                     new List<Props>
                     {
                         Props.Create(() => new Writer()),
+                        //TODO: ActorFactory(string type, string instanceName, string config)
+                        //TODO: get from config
                         Props.Create(() => new Writer()),
                         Props.Create(() => new Writer())
                     },

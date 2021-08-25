@@ -13,7 +13,7 @@ namespace AkkaPlayground.proto.actors
         public class DoWorkCycle { }
         public Reader()
         {
-            // receives steup info, hast separate step, bla
+            // receives migration info, hast separate step, bla
             Receive<DoWorkCycle>(
                 env =>
                 {
