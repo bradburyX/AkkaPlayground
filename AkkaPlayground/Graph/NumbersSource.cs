@@ -19,49 +19,48 @@ namespace AkkaPlayground.Graph
         public override SourceShape<int> Shape => new SourceShape<int>(Out);
 
         //this is where the actual logic will be created
-        protected override GraphStageLogic CreateLogic(Attributes inheritedAttributes) => new Logic(this);
-
-        public static Source<int, NotUsed> Create()
-        {
-            return Source.FromGraph(new NumbersSource());
-        }
+        protected override GraphStageLogic CreateLogic(Attributes inheritedAttributes) 
+            => new NumberLogic(this);
     }
 
-    internal sealed class Logic : GraphStageLogic
+    internal sealed class NumberLogic : GraphStageLogic
     {
-        private readonly NumbersSource _source;
+        private readonly Outlet<int> _outlet;
         private readonly Queue<int> _queue = new Queue<int>();
 
-        public Logic(NumbersSource source) : base(source.Shape)
+        public NumberLogic(NumbersSource source) : base(source.Shape)
         {
-            _source = source;
-            SetHandler(_source.Out, TryPush);
+            _outlet = source.Out;
+            SetHandler(_outlet, TryPush);
         }
 
         public override void PreStart()
         {
             base.PreStart();
-            Console.WriteLine($"PreStart source");
+
             var processCallback = GetAsyncCallback<int>(OnProcessEvent);
 
             Timer timer = new Timer {Interval = 1000};
-            timer.Elapsed += 
-                (sender, args) => { processCallback(DateTime.Now.Second); };
+            timer.Elapsed +=
+                (sender, args) =>
+                {
+                    processCallback(DateTime.Now.Second);
+                };
             timer.Start();
         }
 
         private void TryPush()
         {
-            if (!IsAvailable(_source.Out)) 
+            if (!IsAvailable(_outlet)) 
                 return;
             if (!_queue.TryDequeue(out var msg))
                 return;
-            Push(_source.Out, msg);
+            Push(_outlet, msg);
         }
 
         private void OnProcessEvent(int message)
         {
-            //if(message % 15  == 0)throw new Exception(); // will get restarted!
+            //if(message % 15  == 0)throw new Exception(); // will get restarted, yay!
             _queue.Enqueue(message);
             TryPush();
         }

@@ -3,31 +3,126 @@ using System.ComponentModel;
 using System.Threading.Tasks;
 using Akka;
 using Akka.Actor;
+using Akka.Configuration;
 using Akka.Event;
+using Akka.Routing;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using AkkaPlayground.Actors;
 using AkkaPlayground.Data;
 using AkkaPlayground.Graph;
+using AkkaPlayground.proto;
+using AkkaPlayground.proto.actors;
+using AkkaPlayground.proto.data;
 
 namespace AkkaPlayground
 {
+    /*
+     things:
+     ActorRefs.NoSender
+
+     */
+
     class Program
     {
-        private static ActorSystem system = ActorSystem.Create("MySystem");
+        private static ActorSystem system = 
+            ActorSystem.Create("MySystem", ConfigurationFactory.ParseString(GetConfig()));
 
-        static async Task Main(string[] args)
+        private static string GetConfig()
+        {
+            return @"
+akka.actor.default-dispatcher.throughput = 100  #ensure we process 100 messages per mailbox run
+stable-prio-mailbox{
+    mailbox-type : """ + typeof(TestStablePriorityMailbox).AssemblyQualifiedName + @"""
+}";
+
+            return @"
+akka.actor.default-dispatcher.throughput = 100  #ensure we process 100 messages per mailbox run
+stable-prio-mailbox{
+    mailbox-capacity = 1000
+    mailbox-push-timeout-time = 10s
+    mailbox-type : ""Akka.Dispatch.BoundedMailbox, Akka""
+}
+";
+        }
+
+        static void Main(string[] args)
+        {
+            system.ActorOf(
+                Props.Create(() => new Master()),
+                "master"
+            );
+
+            Console.ReadKey();
+        }
+        static void proto(string[] args)
+        {
+            var writer = Props.Create(() => new Writer());//.WithMailbox("stable-prio-mailbox");
+
+            system.ActorOf(
+                Props.Create(() => new MessageBroker(writer)),
+                "channel1"
+            );
+            system.ActorOf(
+                Props.Create(() => new MessageBroker(writer)),
+                "channel2"
+            );
+            system.ActorOf(
+                Props.Create(() => new MessageBroker(writer)),
+                "channel3"
+            );
+            
+            var brokers = 
+                new[]
+                {
+                    "/user/channel1",
+                    //"/user/channel2",
+                    //"/user/channel3"
+                
+                };
+            var router = 
+                system.ActorOf(
+                    Props.Empty.WithRouter(new RoundRobinGroup(brokers)), 
+                    "reveiverNetwork"
+                );
+
+            for (int i = 0; i < 8; i++)
+            {
+                system
+                    .ActorSelection("akka://MySystem/user/reveiverNetwork")
+                    .Tell(new Broadcast(new Message($"{i}")));
+                //router.Tell(new Broadcast(new Message($"{i}")));
+            }
+
+/*            
+            //config?
+            var config = ConfigurationFactory.ParseString(
+@"
+routees.paths = [
+    ""akka://MySystem/user/Worker1"" #testing full path
+    user/Worker2
+    user/Worker3
+    user/Worker4
+]");
+            var roundRobinGroup = system.ActorOf(Props.Empty.WithRouter(new RoundRobinGroup(config)));
+*/
+            Console.ReadKey();
+        }
+
+        public async void CustomEventStreamDistribution()
         {
             var actor = system.ActorOf<MyReceiveActor>("poorActor");
+            actor.Tell("Welcome to the stage!");
+            // restart actor if down?
+            // -> resend event if not ack'd?
             system.EventStream.Subscribe(actor, typeof(string));
+
+            var monitorProps = Props.Create<DeadletterMonitor>(() => new DeadletterMonitor(system.EventStream));
+            var monitor = system.ActorOf(monitorProps, "Reaper");
 
             var mySource = RestartSource
                 .OnFailuresWithBackoff(
-                    () =>
-                    {
-                        Console.WriteLine("Start/Restart...");
-                        return NumbersSource.Create();
-                    },
+                    () => Source.FromGraph(new NumbersSource()),
                     RestartSettings.Create(
                         TimeSpan.FromSeconds(1),
                         TimeSpan.FromSeconds(3),
@@ -37,16 +132,18 @@ namespace AkkaPlayground
 
             var materializer = ActorMaterializer.Create(system);
             await mySource
-                //.Throttle(1, TimeSpan.FromSeconds(1), 1, ThrottleMode.Shaping)
+                //.Throttle(1, TimeSpan.FromSeconds(1), 1, ThrottleMode.Shaping) // to slow down
                 .RunForeach(
-                    i => system.EventStream.Publish($"Broadcast to all faithful listeners: {i}!"), 
+                    i =>
+                    {
+                        Console.WriteLine($"Sending {i}");
+                        system.EventStream.Publish($"Broadcast to all faithful listeners: {i}!");
+                    }, 
                     materializer
                 );
-
-            Console.ReadKey();
         }
 
-        static void IEnumerableSource()
+        public void IEnumerableSource()
         {
             var sourceGraph = new NumbersSource();
             var mySource = Source.FromGraph(sourceGraph);
@@ -59,7 +156,7 @@ namespace AkkaPlayground
             Console.ReadKey();
         }
 
-        static void events()
+        public void Events()
         {
             var monitorProps = Props.Create<DeadletterMonitor>(() => new DeadletterMonitor(system.EventStream));
             var monitor = system.ActorOf(monitorProps, "Reaper");
@@ -80,7 +177,7 @@ namespace AkkaPlayground
             Console.ReadKey();
         }
 
-        static void deadLetters()
+        public void DeadLetters()
         {
             var monitorProps = Props.Create<DeadletterMonitor>(() => new DeadletterMonitor(system.EventStream));
             var monitor = system.ActorOf(monitorProps, "Reaper");
@@ -97,7 +194,7 @@ namespace AkkaPlayground
 
         }
 
-        static void TestBasics()
+        public void TestBasics()
         {
             var actor = system.ActorOf<MyUntypedActor>();
             actor.Tell("hello");
