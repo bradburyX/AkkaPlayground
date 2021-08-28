@@ -1,1 +1,11 @@
-﻿???
+﻿akka.actor.default-dispatcher.throughput = 100  #ensure we process 100 messages per mailbox run
+stable-prio-mailbox{
+    mailbox-type : """ + typeof(TestStablePriorityMailbox).AssemblyQualifiedName + @"""
+}
+
+akka.actor.default-dispatcher.throughput = 100  #ensure we process 100 messages per mailbox run
+stable-prio-mailbox{
+    mailbox-capacity = 1000
+    mailbox-push-timeout-time = 10s
+    mailbox-type : ""Akka.Dispatch.BoundedMailbox, Akka""
+}

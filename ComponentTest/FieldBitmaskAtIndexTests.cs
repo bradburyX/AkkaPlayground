@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using AkkaPlayground.proto.data;
+using AkkaPlayground.Proto.Data;
 using NUnit.Framework;
 
 namespace ComponentTest

@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Akka.Actor;
-using Akka.Configuration;
+﻿using Akka.Actor;
 using Akka.Dispatch;
 
-namespace AkkaPlayground.proto
+namespace AkkaPlayground.Proto
 {
     public class TestStablePriorityMailbox : UnboundedStablePriorityMailbox
     {
-        public TestStablePriorityMailbox(Settings settings, Config config) : base(settings, config)
+        public TestStablePriorityMailbox(Settings settings, Akka.Configuration.Config config) : base(settings, config)
         {
         }
 

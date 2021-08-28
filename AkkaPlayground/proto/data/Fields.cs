@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
-namespace AkkaPlayground.proto.data
+namespace AkkaPlayground.Proto.Data
 {
     public enum Fields
     {
@@ -45,6 +44,20 @@ namespace AkkaPlayground.proto.data
 
         private const int MaskSize = 16;
 
+        private static FieldsMask _matchAll;
+        public static FieldsMask MatchAll
+        {
+            get
+            {
+                return 
+                    _matchAll 
+                        ??= 
+                    new FieldsMask(
+                        Enum.GetValues(typeof(Fields)).Cast<Fields>().ToList()
+                    );
+            }
+        }
+
         private static readonly Dictionary<Fields, FieldBitmaskAtIndex> FieldList =
             Enum
                 .GetValues(typeof(Fields))
@@ -58,10 +71,16 @@ namespace AkkaPlayground.proto.data
                 );
 
         private static readonly int MaskLength = (int)Math.Ceiling((double)FieldList.Count/ MaskSize);
+        
 
-        public FieldsMask(params Fields[] fields)
+        public FieldsMask()
         {
-            Fields = fields;
+            Fields = new Fields[0];
+            Mask = new ushort[MaskLength];
+        }
+        public FieldsMask(List<Fields> fields)
+        {
+            Fields = fields.ToArray();
             Mask = new ushort[MaskLength];
             foreach (var field in fields)
             {
@@ -72,7 +91,11 @@ namespace AkkaPlayground.proto.data
 
         public bool IsMatch(FieldsMask compare)
         {
-            for (var i = 0; i < MaskSize; i++)
+            if (compare == null)
+            {
+                return false;
+            }
+            for (var i = 0; i < MaskLength; i++)
             {
                 if ((Mask[i] & compare.Mask[i]) != 0)
                 {

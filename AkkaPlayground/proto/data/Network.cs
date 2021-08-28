@@ -1,4 +1,4 @@
-﻿namespace AkkaPlayground.proto.data
+﻿namespace AkkaPlayground.Proto.Data
 {
     public enum Network
     {

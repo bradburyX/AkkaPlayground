@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Akka.Actor;
 using Akka.Persistence;
-using AkkaPlayground.proto.data;
+using AkkaPlayground.Proto.Data;
 
-namespace AkkaPlayground.proto.actors
+namespace AkkaPlayground.Proto.Actors.Generic
 {
     public class MessageBrokerBase : AtLeastOnceDeliveryReceiveActor
     {
@@ -22,10 +20,10 @@ namespace AkkaPlayground.proto.actors
             });
             // recover the most recent at least once delivery state
             Recover<SnapshotOffer>(
-                offer => offer.Snapshot is Akka.Persistence.AtLeastOnceDeliverySnapshot,
+                offer => offer.Snapshot is AtLeastOnceDeliverySnapshot,
                 offer =>
                 {
-                    var snapshot = offer.Snapshot as Akka.Persistence.AtLeastOnceDeliverySnapshot;
+                    var snapshot = offer.Snapshot as AtLeastOnceDeliverySnapshot;
                     SetDeliverySnapshot(snapshot);
                 }
             );
@@ -61,7 +59,8 @@ namespace AkkaPlayground.proto.actors
         }
         protected override void PreStart()
         {
-            DeleteSnapshots(SnapshotSelectionCriteria.Latest);
+            DeleteSnapshots(SnapshotSelectionCriteria.Latest);//4 debug only?
+
             _recurringSnapshotCleanup =
                 Context.System.Scheduler.ScheduleTellRepeatedlyCancelable(TimeSpan.FromSeconds(10),
                     TimeSpan.FromSeconds(10), Self, new CleanSnapshots(), ActorRefs.NoSender);

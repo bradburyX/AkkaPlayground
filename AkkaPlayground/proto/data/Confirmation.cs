@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AkkaPlayground.proto.data
+﻿namespace AkkaPlayground.Proto.Data
 {
     public class Confirmation
     {

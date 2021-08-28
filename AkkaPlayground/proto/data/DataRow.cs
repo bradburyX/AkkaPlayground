@@ -1,24 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AkkaPlayground.proto.data
+﻿namespace AkkaPlayground.Proto.Data
 {
-    public class Message
+    public class DataRow
     {
-        public Message(string content)
+        public DataRow(string content)
         {
             Content = content;
         }
-        public Message(string content, string exclusiveRecipient)
+        public DataRow(string content, string exclusiveRecipient)
         {
             Content = content;
             ExclusiveRecipient = exclusiveRecipient;
         }
 
+        public DataRow(FieldsMask fieldsMask, string content)
+        {
+            FieldsMask = fieldsMask;
+            Content = content;
+        }
+
         public string ExclusiveRecipient { get; private set; }
         public string Content { get; private set; }
-        public string AnswerTo { get; set; }
+        public FieldsMask FieldsMask { get; set; }
 
         public override string ToString()
         {

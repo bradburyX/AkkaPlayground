@@ -1,8 +1,4 @@
-﻿using System;
-using System.ComponentModel;
-using System.Threading.Tasks;
-using Akka;
-using Akka.Actor;
+﻿using Akka.Actor;
 using Akka.Configuration;
 using Akka.Event;
 using Akka.Routing;
@@ -11,16 +7,20 @@ using Akka.Streams.Dsl;
 using AkkaPlayground.Actors;
 using AkkaPlayground.Data;
 using AkkaPlayground.Graph;
-using AkkaPlayground.proto;
-using AkkaPlayground.proto.actors;
-using AkkaPlayground.proto.data;
+using AkkaPlayground.Proto;
+using AkkaPlayground.Proto.Actors;
+using AkkaPlayground.Proto.Config;
+using AkkaPlayground.Proto.Data;
+using Microsoft.Extensions.Configuration;
+using System;
+using System.IO;
+using AkkaPlayground.Proto.Actors.Generic;
 
 namespace AkkaPlayground
 {
     /*
      things:
      ActorRefs.NoSender
-
      */
 
     class Program
@@ -46,10 +46,28 @@ stable-prio-mailbox{
 ";
         }
 
-        static void Main(string[] args)
+        static void Main()
         {
+            var config = new RepositoryConfigCollection();
+            new ConfigurationBuilder()
+                .SetBasePath(Directory.GetParent(AppContext.BaseDirectory).FullName)
+                .AddJsonFile("appsettings.json", false)
+                .Build()
+                .GetSection("Repositories")
+                .Bind(config, options =>
+                {
+                    options.BindNonPublicProperties = true;
+                });
+
+            var result = config.CheckIntegrity();
+            if (!result.IsSuccess)
+            {
+                Console.WriteLine(result.Exception.Message);
+                return;
+            }
+
             system.ActorOf(
-                Props.Create(() => new Master()),
+                Props.Create(() => new Master(config)),
                 "master"
             );
 
@@ -57,8 +75,9 @@ stable-prio-mailbox{
         }
         static void proto(string[] args)
         {
-            var writer = Props.Create(() => new Writer());//.WithMailbox("stable-prio-mailbox");
-
+            //var writer = Props.Create(() => new Writer());//.WithMailbox("stable-prio-mailbox");
+            /*
+            // constructor removed...
             system.ActorOf(
                 Props.Create(() => new MessageBroker(writer)),
                 "channel1"
@@ -71,6 +90,7 @@ stable-prio-mailbox{
                 Props.Create(() => new MessageBroker(writer)),
                 "channel3"
             );
+            */
             
             var brokers = 
                 new[]
@@ -90,7 +110,7 @@ stable-prio-mailbox{
             {
                 system
                     .ActorSelection("akka://MySystem/user/reveiverNetwork")
-                    .Tell(new Broadcast(new Message($"{i}")));
+                    .Tell(new Broadcast(new DataRow($"{i}")));
                 //router.Tell(new Broadcast(new Message($"{i}")));
             }
 
