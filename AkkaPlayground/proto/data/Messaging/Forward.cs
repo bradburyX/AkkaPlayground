@@ -1,14 +1,14 @@
-﻿namespace AkkaPlayground.Proto.Data
+﻿namespace AkkaPlayground.Proto.Data.Messaging
 {
     public class Forward
     {
-        public Forward(Network network, DataRow message)
+        public Forward(Network network, DataPackage message)
         {
             Network = network;
             Message = message;
         }
 
         public Network Network { get; }
-        public DataRow Message { get; }
+        public DataPackage Message { get; }
     }
 }

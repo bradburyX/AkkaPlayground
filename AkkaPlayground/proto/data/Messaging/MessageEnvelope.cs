@@ -1,4 +1,4 @@
-﻿namespace AkkaPlayground.Proto.Data
+﻿namespace AkkaPlayground.Proto.Data.Messaging
 {
     public class MessageEnvelope<TMessage>
     {

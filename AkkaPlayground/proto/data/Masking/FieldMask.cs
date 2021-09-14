@@ -2,30 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace AkkaPlayground.Proto.Data
+namespace AkkaPlayground.Proto.Data.Masking
 {
-    public enum Fields
-    {
-        Name = 1,
-        Email = 2,
-        Address = 3,
-        City = 4,
-        Country = 5,
-        Birthdate = 6,
-        Office = 7,
-        Salary = 8,
-        Job = 9,
-        AcademicTitles = 10,
-        SvNr = 11,
-        Website = 12,
-        HairColor = 13,
-        Nationality = 14,
-        StarSign = 15,
-        Status = 16,
-        Smoker = 17
-    }
-
-    public class FieldsMask
+    public class FieldMask
     {
         public struct FieldBitmaskAtIndex
         {
@@ -39,29 +18,29 @@ namespace AkkaPlayground.Proto.Data
             public ushort Mask { get; set; }
         }
 
-        public Fields[] Fields { get; }
+        public FieldName[] Fields { get; }
         public ushort[] Mask { get; }
 
         private const int MaskSize = 16;
 
-        private static FieldsMask _matchAll;
-        public static FieldsMask MatchAll
+        private static FieldMask _matchAll;
+        public static FieldMask MatchAll
         {
             get
             {
-                return 
-                    _matchAll 
-                        ??= 
-                    new FieldsMask(
-                        Enum.GetValues(typeof(Fields)).Cast<Fields>().ToList()
-                    );
+                return
+                    _matchAll
+                        ??=
+                        new FieldMask(
+                            Enum.GetValues(typeof(FieldName)).Cast<FieldName>().ToList()
+                        );
             }
         }
 
-        private static readonly Dictionary<Fields, FieldBitmaskAtIndex> FieldList =
+        private static readonly Dictionary<FieldName, FieldBitmaskAtIndex> FieldList =
             Enum
-                .GetValues(typeof(Fields))
-                .Cast<Fields>()
+                .GetValues(typeof(FieldName))
+                .Cast<FieldName>()
                 .Select((f, i) =>
                     new { f, i }
                 )
@@ -70,26 +49,34 @@ namespace AkkaPlayground.Proto.Data
                     v => new FieldBitmaskAtIndex(v.i)
                 );
 
-        private static readonly int MaskLength = (int)Math.Ceiling((double)FieldList.Count/ MaskSize);
-        
+        private static readonly int MaskLength = 
+            (int)Math.Ceiling((double)FieldList.Count / MaskSize);
 
-        public FieldsMask()
+
+        public FieldMask()
         {
-            Fields = new Fields[0];
+            Fields = new FieldName[0];
             Mask = new ushort[MaskLength];
         }
-        public FieldsMask(List<Fields> fields)
+        public FieldMask(List<FieldName> fields)
         {
             Fields = fields.ToArray();
             Mask = new ushort[MaskLength];
             foreach (var field in fields)
             {
-                var key = FieldList[field];
+                var key = FieldList[field]; // could be list[enumValue] instead of dict
                 Mask[key.Index] = (ushort)(Mask[key.Index] | key.Mask);
             }
         }
 
-        public bool IsMatch(FieldsMask compare)
+        public FieldMask(FieldName field)
+        {
+            Mask = new ushort[MaskLength];
+            var key = FieldList[field]; // could be list[enumValue] instead of dict
+            Mask[key.Index] = (ushort) (Mask[key.Index] | key.Mask);
+        }
+
+        public bool IsMatch(FieldMask compare)
         {
             if (compare == null)
             {
@@ -105,8 +92,7 @@ namespace AkkaPlayground.Proto.Data
 
             return false;
         }
-
-        public Fields[] Intersect(FieldsMask b)
+        public FieldName[] Intersect(FieldMask b)
         {
             return Fields.Intersect(b.Fields).ToArray();
         }

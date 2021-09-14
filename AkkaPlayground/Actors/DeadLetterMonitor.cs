@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Akka.Actor;
+﻿using Akka.Actor;
 using Akka.Event;
+using System;
 
 namespace AkkaPlayground.Actors
 {
@@ -11,7 +9,7 @@ namespace AkkaPlayground.Actors
 
         public DeadletterMonitor(EventStream systemEventStream)
         {
-            systemEventStream.Subscribe(this.Self, typeof(DeadLetter));
+            systemEventStream.Subscribe(Self, typeof(DeadLetter));
             Receive<DeadLetter>(HandleDeadletter);
         }
 

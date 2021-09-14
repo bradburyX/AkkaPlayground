@@ -5,6 +5,7 @@
         Invalid,
         CSV,
         MSSQL,
-        Counting
+        Counting,
+        Test
     }
 }

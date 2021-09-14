@@ -8,9 +8,7 @@ using AkkaPlayground.Actors;
 using AkkaPlayground.Data;
 using AkkaPlayground.Graph;
 using AkkaPlayground.Proto;
-using AkkaPlayground.Proto.Actors;
 using AkkaPlayground.Proto.Config;
-using AkkaPlayground.Proto.Data;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.IO;
@@ -48,17 +46,7 @@ stable-prio-mailbox{
 
         static void Main()
         {
-            var config = new RepositoryConfigCollection();
-            new ConfigurationBuilder()
-                .SetBasePath(Directory.GetParent(AppContext.BaseDirectory).FullName)
-                .AddJsonFile("appsettings.json", false)
-                .Build()
-                .GetSection("Repositories")
-                .Bind(config, options =>
-                {
-                    options.BindNonPublicProperties = true;
-                });
-
+            var config = new RepositoryConfigCollection("appsettings.json");
             var result = config.CheckIntegrity();
             if (!result.IsSuccess)
             {
@@ -105,14 +93,15 @@ stable-prio-mailbox{
                     Props.Empty.WithRouter(new RoundRobinGroup(brokers)), 
                     "reveiverNetwork"
                 );
-
+            /*
             for (int i = 0; i < 8; i++)
             {
                 system
                     .ActorSelection("akka://MySystem/user/reveiverNetwork")
-                    .Tell(new Broadcast(new DataRow($"{i}")));
+                    .Tell(new Broadcast(new DataPackage($"{i}")));
                 //router.Tell(new Broadcast(new Message($"{i}")));
             }
+            */
 
 /*            
             //config?

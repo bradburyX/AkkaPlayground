@@ -1,7 +1,7 @@
 ﻿using System;
 using Akka.Actor;
 using Akka.Persistence;
-using AkkaPlayground.Proto.Data;
+using AkkaPlayground.Proto.Data.Messaging;
 
 namespace AkkaPlayground.Proto.Actors.Generic
 {

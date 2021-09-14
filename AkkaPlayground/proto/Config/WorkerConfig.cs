@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using AkkaPlayground.Proto.Data;
+using AkkaPlayground.Proto.Data.Masking;
 
 namespace AkkaPlayground.Proto.Config
 {
@@ -7,12 +8,12 @@ namespace AkkaPlayground.Proto.Config
     {
         public abstract Network BelongsTo { get; }
 
-        public List<Fields> Fields { get; protected set; }
+        public List<FieldName> Fields { get; protected set; }
 
-        private FieldsMask _fieldsMask;
-        public FieldsMask FieldsMask
+        private FieldMask _fieldMask;
+        public FieldMask FieldMask
         {
-            get { return _fieldsMask ??= new FieldsMask(Fields); }
+            get { return _fieldMask ??= new FieldMask(Fields); }
         }
     }
 }

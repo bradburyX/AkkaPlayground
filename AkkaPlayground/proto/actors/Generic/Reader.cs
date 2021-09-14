@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Linq;
 using Akka.Actor;
 using AkkaPlayground.Proto.Config;
 using AkkaPlayground.Proto.Data;
+using AkkaPlayground.Proto.Data.Cassandra;
+using AkkaPlayground.Proto.Data.Messaging;
 
 namespace AkkaPlayground.Proto.Actors.Generic
 {
@@ -10,36 +13,59 @@ namespace AkkaPlayground.Proto.Actors.Generic
         private readonly ReaderConfig _workerConfig;
         private ICancelable _workSchedule;
         private readonly IActorRef _worker;
+        private CassandraRepo<DataField> _cassandraRepo;
 
         public class DoWorkCycle { }
 
         public Reader(BaseConfig baseConfig, WorkerConfig workerConfig)
-            :base(baseConfig,workerConfig)
+            : base(baseConfig, workerConfig)
         {
             _workerConfig = (ReaderConfig)workerConfig;
-            /* TODO:
-             * worker gets kicked to action (go-msg to worker)
-             * spews out line by line (or IEnumerable?) his whole data (or changed if it knows...)
-             *      irrelevant to know when or if worker's finished
-             * reader has dedicated mini db
-             * is data in db (missing OR different)?
-             *      send out diff to parent
-             *      update db
-             */
             _worker = Context.ActorOf(
                 WorkerFactory.Provide(baseConfig, workerConfig),
                 $"{workerConfig.BelongsTo}{baseConfig.Name}Repo"
             );
 
-            // this we get from the worker
-            Receive<DataRow>(
-                msg =>
+            Receive<ChangeSet>(
+                row =>
                 {
-                    // check if data is actually changed..
+                    var changes = GetChangedFieldsForRow(row);
+                    if (!changes.Fields.Any())
+                        return;
                     Context.Parent.Tell(
-                        new Forward(Network.Write, msg)
+                        new Forward(
+                            Network.Write,
+                            new DataPackage(changes)
+                        )
                     );
-                });
+                    PersistChangedFields(changes);
+                }
+            );
+        }
+
+        private ChangeSet GetChangedFieldsForRow(ChangeSet changeSet)
+        {
+            var fields = changeSet.Fields.GetFieldNames().Cast<int>();
+            var persisted =
+                _cassandraRepo
+                    .Load(f => fields.Contains((int)f.Col) && f.Id == changeSet.Id)
+                    .ToList();
+            var changes =
+                changeSet.Fields
+                    .Where(c =>
+                        persisted.All(p => p.Col != c.Col) ||
+                        persisted.First(p => p.Col == c.Col).Val != c.Val
+                    )
+                    .ToList();
+            return new ChangeSet(changeSet.Id, changes);
+        }
+        private void PersistChangedFields(ChangeSet changes)
+        {
+            _cassandraRepo.Insert(
+                changes
+                    .Fields
+                    .Select(field => field.ToPersistentField(changes.Id))
+            );
         }
 
         protected override void PreStart()
@@ -52,15 +78,14 @@ namespace AkkaPlayground.Proto.Actors.Generic
                     new DoWorkCycle(),
                     Self
                 );
-
-            // repo iniz here!
+            _cassandraRepo = new CassandraRepo<DataField>();
             base.PreStart();
         }
 
         protected override void PostStop()
         {
             _workSchedule?.Cancel();
-            // repo dispose here!
+            _cassandraRepo.Dispose();
             base.PostStop();
         }
     }

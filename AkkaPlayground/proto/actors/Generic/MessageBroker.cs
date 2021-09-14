@@ -2,6 +2,7 @@
 using Akka.Actor;
 using AkkaPlayground.Proto.Config;
 using AkkaPlayground.Proto.Data;
+using AkkaPlayground.Proto.Data.Messaging;
 
 namespace AkkaPlayground.Proto.Actors.Generic
 {
@@ -15,14 +16,14 @@ namespace AkkaPlayground.Proto.Actors.Generic
 
             var worker = CreateWorker(baseConfig, workerConfig);
 
-            Command<DataRow>(
+            Command<DataPackage>(
                 message => 
                     IsForMe(message) 
                     && IsMatch(message, workerConfig),
                 message =>
                 {
                     Console.WriteLine($"Will relay message {message.Content}");
-                    Deliver(worker.Path, messageId => new MessageEnvelope<DataRow>(message, messageId));
+                    Deliver(worker.Path, messageId => new MessageEnvelope<DataPackage>(message, messageId));
                     SaveSnapshot(GetDeliverySnapshot());
                 }
             );
@@ -38,7 +39,7 @@ namespace AkkaPlayground.Proto.Actors.Generic
 
         private static IActorRef CreateWorker(BaseConfig baseConfig, WorkerConfig workerConfig)
         {
-            if (workerConfig.BelongsTo != Network.Write)
+            if (workerConfig.BelongsTo == Network.Read)
             {
                 // reader is generic, goes to factory himself to get his specific worker
                 return Context.ActorOf(
@@ -70,12 +71,12 @@ namespace AkkaPlayground.Proto.Actors.Generic
         // and doesn't like filters, they produce deadLetters :(
         protected override void Unhandled(object message) { }
 
-        private bool IsMatch(DataRow message, WorkerConfig workerConfig)
+        private bool IsMatch(DataPackage message, WorkerConfig workerConfig)
         {
-            return workerConfig.FieldsMask.IsMatch(message.FieldsMask);
+            return workerConfig.FieldMask.IsMatch(message.FieldMask);
         }
 
-        private bool IsForMe(DataRow message)
+        private bool IsForMe(DataPackage message)
         {
             return
                 string.IsNullOrEmpty(message.ExclusiveRecipient)

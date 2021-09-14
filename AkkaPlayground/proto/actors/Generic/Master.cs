@@ -1,13 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using Akka.Actor;
 using Akka.Routing;
 using AkkaPlayground.Proto.Config;
 using AkkaPlayground.Proto.Data;
+using AkkaPlayground.Proto.Data.Messaging;
 
 namespace AkkaPlayground.Proto.Actors.Generic
 {
+    // TODO LOGGING
     public class Master : ReceiveActor
     {
         public Master(RepositoryConfigCollection config)
@@ -18,7 +19,7 @@ namespace AkkaPlayground.Proto.Actors.Generic
             Receive<Forward>(
                 fwd =>
                 {
-                    Console.WriteLine($"Master got {fwd.Message}");
+                    Console.WriteLine($"Master got {fwd.Message.Content}");
                     Context
                         .ActorSelection(fwd.Network.ToString())
                         .Tell(fwd.Message);
@@ -36,11 +37,11 @@ namespace AkkaPlayground.Proto.Actors.Generic
                         c.Info, worker = c.GetForRole(network)
                     }
                 )
-                .Where(_ => _.worker != null)
-                .Select(_ =>
+                .Where(c => c.worker != null)
+                .Select(c =>
                     Context.ActorOf(
-                        Props.Create(() => new MessageBroker(_.Info, _.worker)),
-                        $"{network}{_.Info.Name}"
+                        Props.Create(() => new MessageBroker(c.Info, c.worker)),
+                        $"{network}{c.Info.Name}"
                     )
                 )
                 .ToList();

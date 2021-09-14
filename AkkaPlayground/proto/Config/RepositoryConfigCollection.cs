@@ -1,13 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Akka.Util;
-using AkkaPlayground.Proto.Data;
+using AkkaPlayground.Proto.Data.Masking;
+using Microsoft.Extensions.Configuration;
 
 namespace AkkaPlayground.Proto.Config
 {
     public class RepositoryConfigCollection : List<RepositoryConfig>
     {
+        public RepositoryConfigCollection(string jsonPath)
+        {
+            new ConfigurationBuilder()
+                .SetBasePath(Directory.GetParent(AppContext.BaseDirectory).FullName)
+                .AddJsonFile(jsonPath, false)
+                .Build()
+                .GetSection("Repositories")
+                .Bind(this, options => { options.BindNonPublicProperties = true; });
+        }
         public Result<int> CheckIntegrity()
         {
             var errors = new List<string>();
@@ -22,8 +33,8 @@ namespace AkkaPlayground.Proto.Config
 
             var rwCollision =
                 this.Where(c =>
-                        c.Writer?.FieldsMask.IsMatch(
-                            c.Reader?.FieldsMask ?? new FieldsMask()
+                        c.Writer?.FieldMask.IsMatch(
+                            c.Reader?.FieldMask ?? new FieldMask()
                         )
                         ?? false
                     )
@@ -39,8 +50,8 @@ namespace AkkaPlayground.Proto.Config
                         this.Any(c =>
                             r.Info.Name != c.Info.Name &&
                             (
-                                r.Reader?.FieldsMask.IsMatch(
-                                    c.Reader?.FieldsMask ?? new FieldsMask()
+                                r.Reader?.FieldMask.IsMatch(
+                                    c.Reader?.FieldMask ?? new FieldMask()
                                 )
                                 ?? false
                             )

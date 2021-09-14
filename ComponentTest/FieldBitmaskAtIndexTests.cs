@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using AkkaPlayground.Proto.Data;
+﻿using AkkaPlayground.Proto.Data.Masking;
 using NUnit.Framework;
 
 namespace ComponentTest
@@ -11,27 +8,27 @@ namespace ComponentTest
         [Test]
         public void CreatesMin()
         {
-            Assert.AreEqual(1, new FieldsMask.FieldBitmaskAtIndex(15).Mask);
+            Assert.AreEqual(1, new FieldMask.FieldBitmaskAtIndex(15).Mask);
         }
         [Test]
         public void CreatesMax()
         {
-            Assert.AreEqual(1 << 15, new FieldsMask.FieldBitmaskAtIndex(0).Mask);
+            Assert.AreEqual(1 << 15, new FieldMask.FieldBitmaskAtIndex(0).Mask);
         }
         [Test]
         public void CreatesIndex()
         {
-            Assert.AreEqual(0, new FieldsMask.FieldBitmaskAtIndex(5).Index);
+            Assert.AreEqual(0, new FieldMask.FieldBitmaskAtIndex(5).Index);
         }
         [Test]
         public void CreatesMaxOverflow()
         {
-            Assert.AreEqual(1 << 15, new FieldsMask.FieldBitmaskAtIndex(16).Mask);
+            Assert.AreEqual(1 << 15, new FieldMask.FieldBitmaskAtIndex(16).Mask);
         }
         [Test]
         public void CreatesIndexOverflow()
         {
-            Assert.AreEqual(1, new FieldsMask.FieldBitmaskAtIndex(17).Index);
+            Assert.AreEqual(1, new FieldMask.FieldBitmaskAtIndex(17).Index);
         }
     }
 }
